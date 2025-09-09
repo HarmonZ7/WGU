@@ -26,8 +26,24 @@ df_abs = pd.DataFrame(data=df_imputation)
 df_abs["DrivingCommuterDistance"] = df_abs["DrivingCommuterDistance"].abs()
 df_abs["AnnualSalary"] = df_abs["AnnualSalary"].abs()
 
+#replaces inconsistent values in PaycheckMethod column with 2 uniform values.
+df_consistent = pd.DataFrame(data=df_abs)
+
+replacement_map = {
+    "Mail Check": "MailedCheck",
+    "Mailed Check": "MailedCheck",
+    "Mail_Check": "MailedCheck",
+
+    "Direct_Deposit": "DirectDeposit",
+    "Direct Deposit": "DirectDeposit"
+}
+
+df_consistent["PaycheckMethod"] = df_consistent["PaycheckMethod"].replace(replacement_map)
+df_consistent["PaycheckMethod"].unique()
+
+
 #recalculates annual salary column due to excessive inconsistancies. 
-df_cleaned = pd.DataFrame(data=df_abs)
+df_cleaned = pd.DataFrame(data=df_consistent)
 
 df_cleaned.rename(columns={"HourlyRate ": "HourlyRate"}, inplace=True)
 df_cleaned["HourlyRate"] = df_cleaned["HourlyRate"].astype(str).str.replace(r"[\$,]", "", regex=True)
