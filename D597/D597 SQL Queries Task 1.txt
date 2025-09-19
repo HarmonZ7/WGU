@@ -1,0 +1,123 @@
+CREATE DATABASE "D597 Task 1";
+
+CREATE TABLE raw_import (
+    region TEXT,
+    country TEXT,
+    item_type TEXT,
+    sales_channel TEXT,
+    order_priority CHAR(1),
+    order_date DATE,
+    order_id BIGINT PRIMARY KEY,
+    ship_date DATE,
+    units_sold INTEGER,
+    unit_price NUMERIC(10,2),
+    unit_cost NUMERIC(10,2),
+    total_revenue NUMERIC(12,2),
+    total_cost NUMERIC(12,2),
+    total_profit NUMERIC(12,2)
+);
+
+COPY raw_import FROM 'C:\Users\Administrator\Desktop\in.csv'
+DELIMITER ',' CSV HEADER;
+
+SELECT * FROM raw_import LIMIT 5
+
+
+CREATE TABLE Orders (
+    orderID BIGINT PRIMARY KEY,
+    region TEXT,
+    country TEXT,
+    item_type TEXT,
+    sales_channel TEXT,
+    order_priority CHAR(1)
+);
+
+CREATE TABLE Sales (
+    orderID BIGINT PRIMARY KEY,
+    order_date DATE,
+    ship_date DATE,
+    units_sold INTEGER,
+    unit_price NUMERIC(10,2),
+    unit_cost NUMERIC(10,2),
+    total_revenue NUMERIC(12,2),
+    total_cost NUMERIC(12,2),
+    total_profit NUMERIC(12,2),
+    FOREIGN KEY (orderID) REFERENCES Orders(orderID)
+);
+
+-- Insert into Orders
+INSERT INTO Orders (orderID, region, country, item_type, sales_channel, order_priority)
+SELECT DISTINCT order_id, region, country, item_type, sales_channel, order_priority
+FROM raw_import;
+
+-- Insert into Sales
+INSERT INTO Sales (
+    orderID, order_date, ship_date, units_sold,
+    unit_price, unit_cost, total_revenue, total_cost, total_profit
+)
+SELECT order_id, order_date, ship_date, units_sold,
+       unit_price, unit_cost, total_revenue, total_cost, total_profit
+FROM raw_import;
+
+--Querying Tables
+SELECT * FROM Sales LIMIT 5;
+SELECT * FROM Orders LIMIT 5;
+
+--Deleting temp table
+DROP TABLE raw_import;
+
+--Query 1
+SELECT COUNT(DISTINCT(country)) as unique_countries
+FROM Orders
+ORDER BY unique_countries
+--Query 2
+SELECT COUNT(*) AS total_orders
+FROM Orders;
+--Query 3
+SELECT SUM(total_profit) AS total_profit
+FROM Sales;
+
+--1. runtime before index addition
+EXPLAIN ANALYZE
+SELECT item_type, SUM(s.total_profit) as total_profit_per_type
+FROM Orders o
+JOIN Sales s on o.orderId = s.orderID 
+GROUP BY item_type;
+
+--1. Runtime after index addition
+CREATE INDEX idx_item_type ON Orders(item_type);
+DROP INDEX idx_item_type
+
+EXPLAIN ANALYZE
+SELECT item_type, SUM(s.total_profit) as total_profit_per_type
+FROM Orders o
+JOIN Sales s on o.orderId = s.orderID 
+GROUP BY item_type;
+
+--2. runtime before index addition
+EXPLAIN ANALYZE
+SELECT COUNT(DISTINCT(country)) as unique_countries
+FROM Orders
+ORDER BY unique_countries
+
+--2. Runtime after index addition
+CREATE INDEX idx_country ON Orders(country);
+
+
+EXPLAIN ANALYZE
+SELECT COUNT(DISTINCT(country)) as unique_countries
+FROM Orders
+ORDER BY unique_countries
+
+--3. runtime before index addition
+EXPLAIN ANALYZE
+SELECT SUM(total_profit) AS total_profit
+FROM Sales;
+
+--3. Runtime after index addition
+CREATE INDEX idx_total_profit ON Sales(total_profit);
+
+
+EXPLAIN ANALYZE
+SELECT SUM(total_profit) AS total_profit
+FROM Sales;
